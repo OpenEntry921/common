@@ -1,0 +1,2 @@
+import Link from "next/link";import { ArrowRight } from "lucide-react";
+export default function Page(){return <div className="qr-page"><div className="qr-copy"><p className="eyebrow">WELCOME TO COMMON</p><h1 className="display">COMMON에 오신 것을<br/>환영합니다.</h1><p className="lead">커피 한 잔과 함께<br/>우리 동네의 작은 연결을 만나보세요.</p><Link className="button" href="/">시작하기 <ArrowRight size={18}/></Link></div><div className="qr-art"><div className="qr-cup"/></div></div>}

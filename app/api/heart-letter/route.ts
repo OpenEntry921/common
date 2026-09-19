@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   try {
     const exclusions = (body.excludeReferences ?? []).slice(0, 5).join(", ");
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+      model: process.env.OPENAI_MODEL || "gpt-5.6",
       instructions: `${HEART_LETTER_INSTRUCTIONS}\n${exclusions ? `이번 답변에서는 이미 제안한 다음 구절을 피하십시오: ${exclusions}` : ""}`,
       input: messages.map(m => ({ role: m.role, content: m.content })),
       max_output_tokens: 1200,

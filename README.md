@@ -68,7 +68,7 @@ COMMON 마음편지는 OpenAI Responses API를 이용하여 사용자의 이야�
 
 ```text
 OPENAI_API_KEY=your_api_key
-OPENAI_MODEL=gpt-4.1-mini
+OPENAI_MODEL=gpt-5.6
 ADMIN_DEMO_PIN=choose_a_demo_pin
 ```
 

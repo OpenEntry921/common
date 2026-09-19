@@ -1,0 +1,68 @@
+# COMMON
+
+**Coffee · Community · Care**
+
+## Concept
+
+지역 카페를 기반으로 지역 주민과 교회가 자연스럽게 연결되는 Community Platform 프로토타입입니다. 교회를 먼저 드러내기보다 주민에게 도움이 되는 나눔, 프로그램, 대화 경험을 제공하고 사용자가 원할 때만 기도·상담·신앙 콘텐츠로 이어집니다.
+
+## Core Philosophy
+
+**People → Help → Relationship → Community → Church → Faith**
+
+## Demo
+
+| Route | 설명 |
+| --- | --- |
+| `/qr-demo` | 카페 테이블 QR 진입 화면 |
+| `/` | 감정 선택, 서비스 탐색, 선택적 성경 문장 |
+| `/give-ask` | 도움 요청과 재능 나눔 피드 |
+| `/request-help`, `/share-talent` | 도움·재능 등록 폼 |
+| `/community` | 지역 프로그램 목록과 신청 모달 |
+| `/market` | 동네 나눔 장터 |
+| `/heart` | 로컬 데모 응답을 사용하는 AI 마음편지 |
+| `/prayer`, `/talk` | 익명 기도 및 사람 연결 요청 |
+| `/my`, `/my/certificate` | Community Passport와 활동 인증서 |
+| `/impact` | 데모 Community Impact 통계 |
+| `/church` | 사용자가 선택해 접근하는 교회 소개 |
+| `/privacy` | 개인정보와 신뢰 원칙 |
+| `/admin-demo` | 익명 통계 기반 운영자 데모 |
+
+### 추천 시연 흐름
+
+1. **일반 주민:** `/qr-demo` → Home → `위로` → 마음편지 → 기도 요청
+2. **지역사회 연결:** Give & Ask → 연결 요청 → 프로그램 신청 → MY 활동 인증서
+3. **운영 관점:** Admin Demo → Community Impact → 사용자 화면
+
+모든 입력과 수치는 시연용입니다. 서버, 데이터베이스, AI API 또는 외부 분석 서비스로 전송되지 않습니다.
+
+## Development
+
+Node.js 20 이상을 권장합니다.
+
+```bash
+npm install
+npm run dev
+```
+
+브라우저에서 `http://localhost:3000`을 엽니다. 프로덕션 빌드는 다음 명령으로 확인합니다.
+
+```bash
+npm run build
+npm start
+```
+
+교회명, 카페명과 연락처는 `lib/config.ts`에서 한 번에 변경할 수 있습니다.
+
+## Future Roadmap
+
+- Real Authentication
+- Community Member Verification
+- AI API
+- Volunteer Matching
+- Community Passport
+- Verifiable Credentials
+- DID
+- Privacy-preserving Activity Records
+- QR Table Integration
+- Real Admin Analytics

@@ -101,7 +101,8 @@ export default function Page() {
       </div>}
 
       {!answer && notice && <div className="notice error-notice">{notice}</div>}
-      {!answer && !hasTemporaryKey && <div className="fallback-notice">현재 AI 마음편지가 데모 모드로 실행되고 있습니다.{isDemoAdmin && <><br/>관리자 페이지에서 OpenAI API를 연결하면 실제 AI 응답을 사용할 수 있습니다.</>}</div>}
+      {!answer && hasTemporaryKey && <div className="ai-availability">● AI 마음편지 사용 가능</div>}
+      {!answer && !hasTemporaryKey && <div className="fallback-notice">현재 Demo Mode입니다.{isDemoAdmin && <><br/>관리자 페이지에서 OpenAI API를 연결하면 실제 AI 응답을 사용할 수 있습니다.</>}</div>}
       <div className="privacy-panel"><ArrowLeft size={16}/><p>마음편지에 남긴 이야기는 현재 데모에서는 저장되지 않습니다. 개인정보나 민감한 정보는 입력하지 않는 것을 권합니다.<br/><small>마음편지는 의료·심리·목회 상담을 대신하지 않습니다. 자신이나 타인을 해칠 위험이 있거나 위급한 상황이라면 112·119 또는 가까운 전문기관에 즉시 도움을 요청해 주세요.</small></p></div>
     </div></section>
   </>;

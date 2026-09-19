@@ -22,6 +22,7 @@ export function getOpenAIClient(requestKey?: string) {
         if (!response.ok) {
           let code: string | undefined;
           let type: string | undefined;
+          let param: string | undefined;
           try {
             const metadata: unknown = await response.json();
             if (metadata && typeof metadata === "object" && "error" in metadata) {
@@ -29,6 +30,7 @@ export function getOpenAIClient(requestKey?: string) {
               if (providerError && typeof providerError === "object") {
                 code = safeErrorField("code" in providerError ? providerError.code : undefined);
                 type = safeErrorField("type" in providerError ? providerError.type : undefined);
+                param = safeErrorField("param" in providerError ? providerError.param : undefined);
               }
             }
           } catch { /* A non-JSON error body has no safe metadata. */ }
@@ -36,6 +38,7 @@ export function getOpenAIClient(requestKey?: string) {
             response.status,
             code,
             type,
+            param,
           );
         }
         const data = await response.json() as { output_text?: string; output?: { content?: { type?: string; text?: string }[] }[] };
@@ -52,7 +55,12 @@ function safeErrorField(value: unknown) {
 
 /** Contains only allow-listed provider metadata, never the raw response or request. */
 export class OpenAIRequestError extends Error {
-  constructor(public status: number, public code?: string, public errorType?: string) {
+  constructor(
+    public status: number,
+    public code?: string,
+    public errorType?: string,
+    public param?: string,
+  ) {
     super("OpenAI request failed");
     this.name = "OpenAIRequestError";
   }

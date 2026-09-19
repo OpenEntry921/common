@@ -20,7 +20,7 @@
 | `/request-help`, `/share-talent` | 도움·재능 등록 폼 |
 | `/community` | 지역 프로그램 목록과 신청 모달 |
 | `/market` | 동네 나눔 장터 |
-| `/heart` | 로컬 데모 응답을 사용하는 AI 마음편지 |
+| `/heart` | OpenAI 연동과 안전한 데모 fallback을 사용하는 AI 마음편지 |
 | `/prayer`, `/talk` | 익명 기도 및 사람 연결 요청 |
 | `/my`, `/my/certificate` | Community Passport와 활동 인증서 |
 | `/impact` | 데모 Community Impact 통계 |
@@ -34,7 +34,7 @@
 2. **지역사회 연결:** Give & Ask → 연결 요청 → 프로그램 신청 → MY 활동 인증서
 3. **운영 관점:** Admin Demo → Community Impact → 사용자 화면
 
-모든 입력과 수치는 시연용입니다. 서버, 데이터베이스, AI API 또는 외부 분석 서비스로 전송되지 않습니다.
+마음편지를 제외한 입력과 수치는 시연용이며 서버에 저장되지 않습니다. 마음편지 내용은 응답 생성을 위해 OpenAI API로 전송되지만 DB, LocalStorage 또는 Analytics에 저장하지 않습니다.
 
 ## Development
 
@@ -53,6 +53,19 @@ npm start
 ```
 
 교회명, 카페명과 연락처는 `lib/config.ts`에서 한 번에 변경할 수 있습니다.
+
+### AI Heart Letter
+
+COMMON 마음편지는 OpenAI Responses API를 이용하여 사용자의 이야기에 대한 응답, 관련 성경 말씀의 위치와 문맥, 현재 삶과 연결한 묵상을 제공합니다. 대화는 현재 브라우저 세션의 메모리에만 유지되며 새로고침 후 복원하거나 데이터베이스에 저장하지 않습니다. API 장애나 timeout 시에는 준비된 데모 응답으로 자동 전환됩니다.
+
+`.env.example`을 참고해 프로젝트 루트의 `.env.local`에 다음 환경변수를 설정하세요.
+
+```text
+OPENAI_API_KEY=your_api_key
+OPENAI_MODEL=gpt-5.6
+```
+
+`OPENAI_API_KEY`는 서버 API Route에서만 읽습니다. **실제 API Key를 소스 코드, `NEXT_PUBLIC_` 환경변수 또는 GitHub에 절대로 Commit하지 마세요.** `.env.local`은 `.gitignore`에 포함되어 있습니다.
 
 ## Future Roadmap
 

@@ -58,21 +58,19 @@ npm start
 
 COMMON 마음편지는 OpenAI Responses API를 이용하여 사용자의 이야기에 대한 응답, 관련 성경 말씀의 위치와 문맥, 현재 삶과 연결한 묵상을 제공합니다. 대화는 현재 브라우저 세션의 메모리에만 유지되며 새로고침 후 복원하거나 데이터베이스에 저장하지 않습니다. API 장애나 timeout 시에는 준비된 데모 응답으로 자동 전환됩니다.
 
-### Demo API Key Mode
+### Server-side OpenAI 설정
 
-현재 관리자 페이지의 OpenAI API Key 연결 기능은 현장 시연 편의를 위한 **Prototype 기능**입니다. `/admin-demo`에서 Key를 붙여넣으면 실제 OpenAI 연결을 확인한 뒤 현재 브라우저 탭의 `sessionStorage`에만 임시 보관합니다. Key는 DB, 파일, Cookie, URL, LocalStorage 또는 Analytics에 저장하지 않으며 탭을 닫으면 사라집니다. 브라우저는 OpenAI를 직접 호출하지 않고 언제나 COMMON의 Server API Route를 거칩니다.
+마음편지의 OpenAI API Key는 브라우저가 아니라 Next.js 서버에서만 `OPENAI_API_KEY` 환경변수로 읽습니다. 브라우저는 마음편지 내용만 `/api/heart-letter`에 보내며 Key, Authorization header 또는 Key 일부를 받거나 저장하지 않습니다. 따라서 Netlify에 Secret을 한 번 설정하면 어느 기기에서 접속해도 같은 서버 설정을 사용합니다.
 
-이 방식은 운영 환경용 보안 설계가 아닙니다. **Production 배포 시 브라우저 Key 입력을 제거하고 Server-side Secret Management 또는 Hosting Provider Secret으로 변경해야 합니다.** OpenAI client 생성은 `lib/openai-server.ts`에 모듈화되어 있어 Key source만 교체할 수 있습니다.
-
-`.env.example`을 참고해 프로젝트 루트의 `.env.local`에 관리자 데모 PIN을 설정하세요. 서버 환경의 OpenAI Key는 브라우저 입력을 사용하지 않는 개발/향후 운영 방식의 선택적 fallback입니다.
+`.env.example`을 참고해 프로젝트 루트의 `.env.local`에 관리자 데모 PIN, OpenAI Key와 모델을 설정하세요.
 
 ```text
-OPENAI_API_KEY=your_api_key
-OPENAI_MODEL=gpt-5.6
-ADMIN_DEMO_PIN=choose_a_demo_pin
+ADMIN_DEMO_PIN=your-admin-pin
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=your-model-id
 ```
 
-`OPENAI_API_KEY`와 `ADMIN_DEMO_PIN`은 서버 API Route에서만 읽습니다. **실제 비밀값을 소스 코드, `NEXT_PUBLIC_` 환경변수 또는 GitHub에 절대로 Commit하지 마세요.** `.env.local`은 `.gitignore`에 포함되어 있습니다. 현재 PIN gate는 Prototype 최소 보호이며 Production에서는 실제 관리자 인증·권한 시스템으로 교체해야 합니다.
+`OPENAI_API_KEY`와 `ADMIN_DEMO_PIN`은 Netlify에서 **Contains secret values**로 설정하고 서버 API Route에서만 읽습니다. Secrets Scanning은 활성화한 상태로 유지합니다. **실제 비밀값을 소스 코드, `NEXT_PUBLIC_` 환경변수 또는 GitHub에 절대로 Commit하지 마세요.** 로컬에서는 `.env.local`을 사용할 수 있으며 이 파일은 `.gitignore`에 포함되어 있습니다. 현재 PIN gate는 Prototype 최소 보호이며 Production에서는 실제 관리자 인증·권한 시스템으로 교체해야 합니다.
 
 ## Future Roadmap
 

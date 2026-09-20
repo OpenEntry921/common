@@ -1,11 +1,11 @@
-import { OPENAI_KEY_HEADER } from "@/lib/openai-config";
+import "server-only";
 
 /**
- * Centralized server-only client factory. The request key exists only for the
- * lifetime of one prototype request. It is never persisted by the server.
+ * Centralized server-only client factory. Secrets are read exclusively from
+ * the server process and are never accepted from a browser request.
  */
-export function getOpenAIClient(requestKey?: string) {
-  const apiKey = requestKey?.trim();
+export function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return null;
   return {
     responses: {
@@ -73,11 +73,6 @@ export class OpenAINetworkError extends Error {
     super("OpenAI network request failed");
     this.name = "OpenAINetworkError";
   }
-}
-
-export function temporaryKeyFrom(request: Request) {
-  const key = request.headers.get(OPENAI_KEY_HEADER)?.trim();
-  return key && key.length <= 256 ? key : undefined;
 }
 
 export function openAIModel() {

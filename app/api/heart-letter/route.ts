@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { CRISIS_RESPONSE, FALLBACK_RESPONSE, HEART_LETTER_INSTRUCTIONS, MAX_MESSAGE_LENGTH, MAX_MESSAGES, hasCrisisLanguage, type ConversationMessage } from "@/lib/heart-letter";
-import { getOpenAIClient, OpenAINetworkError, OpenAIRequestError, openAIModel, temporaryKeyFrom } from "@/lib/openai-server";
+import { getOpenAIClient, OpenAINetworkError, OpenAIRequestError, openAIModel } from "@/lib/openai-server";
 import type { HeartLetterFallbackReason } from "@/lib/openai-config";
 
 export const runtime = "nodejs";
@@ -15,6 +16,7 @@ const outputSchema = {
 };
 
 const buckets = new Map<string, number[]>();
+const repeatedRequests = new Map<string, { signature: string; count: number; since: number }>();
 function rateLimited(ip: string) {
   const now = Date.now();
   const recent = (buckets.get(ip) ?? []).filter(time => now - time < 10 * 60_000);
@@ -22,9 +24,23 @@ function rateLimited(ip: string) {
   recent.push(now); buckets.set(ip, recent); return false;
 }
 
+function isRepeatedRequest(ip: string, signature: string) {
+  const now = Date.now();
+  const previous = repeatedRequests.get(ip);
+  const repeated = previous && now - previous.since < 60_000 && previous.signature === signature
+    ? { ...previous, count: previous.count + 1 }
+    : { signature, count: 1, since: now };
+  repeatedRequests.set(ip, repeated);
+  return repeated.count > 3;
+}
+
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   if (rateLimited(ip)) return Response.json({ error: "잠시 후 다시 시도해 주세요." }, { status: 429 });
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(contentLength) && contentLength > 20_000) {
+    return Response.json({ error: "요청 내용이 너무 깁니다." }, { status: 413 });
+  }
 
   let body: { messages?: ConversationMessage[]; excludeReferences?: string[] };
   try { body = await request.json(); } catch { return Response.json({ error: "올바르지 않은 요청입니다." }, { status: 400 }); }
@@ -34,10 +50,17 @@ export async function POST(request: Request) {
       messages.reduce((sum, m) => sum + m.content.length, 0) > 8000) {
     return Response.json({ error: "대화 내용을 확인해 주세요." }, { status: 400 });
   }
+  if (body.excludeReferences !== undefined &&
+      (!Array.isArray(body.excludeReferences) || body.excludeReferences.length > 5 ||
+       body.excludeReferences.some(reference => typeof reference !== "string" || reference.length > 100))) {
+    return Response.json({ error: "제외할 말씀 목록을 확인해 주세요." }, { status: 400 });
+  }
+  const signature = createHash("sha256").update(messages.map(message => `${message.role}:${message.content}`).join("\n")).digest("hex");
+  if (isRepeatedRequest(ip, signature)) return Response.json({ error: "같은 요청이 반복되었습니다. 잠시 후 다시 시도해 주세요." }, { status: 429 });
   const latest = [...messages].reverse().find(m => m.role === "user")?.content ?? "";
   if (hasCrisisLanguage(latest)) return Response.json({ data: CRISIS_RESPONSE, source: "safety", mode: "demo" });
 
-  const client = getOpenAIClient(temporaryKeyFrom(request));
+  const client = getOpenAIClient();
   if (!client) return Response.json({
     data: FALLBACK_RESPONSE,
     source: "fallback",
@@ -54,6 +77,7 @@ export async function POST(request: Request) {
       instructions: `${HEART_LETTER_INSTRUCTIONS}\n${exclusions ? `이번 답변에서는 이미 제안한 다음 구절을 피하십시오: ${exclusions}` : ""}`,
       input: messages.map(m => ({ role: m.role, content: m.content })),
       text: { format: { type: "json_schema", name: "heart_letter", strict: true, schema: outputSchema } },
+      max_output_tokens: 1000,
     });
     let parsed: Record<string, unknown>;
     try {

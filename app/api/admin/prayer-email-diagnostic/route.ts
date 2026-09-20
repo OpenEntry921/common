@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   const result = await sendWithResend(apiKey, { from, to: [recipient], subject, text: message }, `prayer-diagnostic/${randomUUID()}`);
   if (result.error) {
     console.error("prayer_email_diagnostic_failure", { stage: "resend", status: result.httpStatus, code: result.error.code, type: result.error.type, provider: "resend", timestamp: base.timestamp });
-    const testDomainRestriction = from.toLowerCase() === "onboarding@resend.dev" && (result.httpStatus === 403 || /test|domain|recipient/i.test(result.error.message));
+    const testDomainRestriction = result.httpStatus === 403 && /test|domain|recipient/i.test(result.error.message);
     return Response.json({ ok: false, stage: "resend", ...base, httpStatus: result.httpStatus ?? null, error: result.error, testDomainRestriction }, { headers: { "Cache-Control": "no-store" } });
   }
   return Response.json({ ok: true, stage: "complete", ...base, httpStatus: result.httpStatus ?? 200, emailId: result.data?.id }, { headers: { "Cache-Control": "no-store" } });

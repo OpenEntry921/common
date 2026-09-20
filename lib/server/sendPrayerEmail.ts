@@ -83,7 +83,9 @@ export async function sendPrayerEmail(request: PrayerEmail) {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.PRAYER_FROM_EMAIL?.trim();
   const to = prayerEmailRecipient();
-  if (!apiKey || !from || !to) throw new PrayerEmailError("environment", "email_provider_not_configured");
+  if (!apiKey) throw new PrayerEmailError("environment", "MISSING_RESEND_API_KEY");
+  if (!from) throw new PrayerEmailError("environment", "MISSING_FROM_EMAIL");
+  if (!to) throw new PrayerEmailError("environment", "MISSING_RECIPIENT_EMAIL");
   if (!safeEmailHeader(from) || !safeEmailHeader(to)) throw new PrayerEmailError("environment", "invalid_email_configuration");
 
   const details = requestDetails[request.type];

@@ -23,6 +23,9 @@ function clientIp(request: Request) {
 
 function rateLimited(ip: string, fingerprint: string) {
   const now = Date.now();
+  for (const [key, time] of recentRequests) {
+    if (now - time >= REPEAT_MS) recentRequests.delete(key);
+  }
   const active = (attempts.get(ip) ?? []).filter(time => now - time < WINDOW_MS);
   if (active.length >= 5) return true;
   active.push(now);
@@ -47,32 +50,34 @@ export async function POST(request: Request) {
   const name = clean(raw.name, 60);
   const contactMethod = clean(raw.contactMethod, 30);
   const contactDetail = clean(raw.contactDetail, 200);
-  const privacy = raw.privacy;
-  const connection = raw.connection;
-  const validPrivacy = privacy === "anonymous" || privacy === "named" || privacy === "contact";
-  const validConnection = connection === "prayer" || connection === "conversation" || connection === "pastoral";
-  const needsContact = privacy === "contact" || connection !== "prayer";
-  if (!story || !validPrivacy || !validConnection || (privacy === "named" && !name) || (needsContact && (!contactMethod || !contactDetail))) {
+  const identity = raw.identity;
+  const type = raw.type;
+  const validIdentity = identity === "anonymous" || identity === "named" || identity === "contact";
+  const validType = type === "prayer_only" || type === "conversation" || type === "pastoral_care";
+  const needsContact = type === "conversation" || type === "pastoral_care";
+  const needsContactDetail = needsContact && contactMethod !== "직접 만나서 이야기";
+  if (!story || !validIdentity || !validType || (needsContact && !contactMethod) || (needsContactDetail && !contactDetail)) {
     return Response.json({ error: "필수 입력 내용을 확인해주세요." }, { status: 400 });
   }
 
   const ip = clientIp(request);
-  const fingerprint = createHash("sha256").update(`${ip}\0${story}\0${privacy}\0${connection}`).digest("hex");
+  const fingerprint = createHash("sha256").update(`${ip}\0${story}\0${identity}\0${type}\0${contactDetail}`).digest("hex");
   if (rateLimited(ip, fingerprint)) {
     return Response.json({ error: "요청이 너무 빠르게 반복되었습니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
   }
 
   const email: PrayerEmail = {
-    receivedAt: new Date(), story, privacy, connection,
-    ...(privacy === "named" ? { name } : {}),
+    receivedAt: new Date(), story, identity, type,
+    ...(identity === "named" && name ? { name } : {}),
     ...(needsContact ? { contactMethod, contactDetail } : {}),
   };
   try {
     await sendPrayerEmail(email);
-    return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+    return Response.json({ success: true, mode: "email" }, { headers: { "Cache-Control": "no-store" } });
   } catch {
+    recentRequests.delete(fingerprint);
     return Response.json(
-      { error: "기도 요청을 전달하는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요." },
+      { error: "기도 요청을 전달하는 중 문제가 발생했습니다. 작성하신 내용을 유지한 상태에서 잠시 후 다시 시도해주세요." },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }

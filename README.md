@@ -87,10 +87,10 @@ OPENAI_MODEL=your-model-id
 
 ## 기도 요청 이메일 설정
 
-기도 요청은 브라우저가 아닌 `POST /api/prayer` 서버 Route에서 Resend API를 통해 일반 텍스트 이메일로 전달됩니다. Netlify에 다음 환경변수를 설정하세요.
+기도 요청은 브라우저가 아닌 `POST /api/prayer` 서버 Route에서 Resend API를 통해 HTML 및 일반 텍스트 이메일로 전달됩니다. 요청 내용은 데이터베이스나 브라우저 저장소에 보관하지 않습니다. Netlify에 다음 server-side 환경변수를 설정하세요.
 
 - `PRAYER_RECIPIENT_EMAIL`: 기도 요청을 받을 운영 이메일
-- `EMAIL_PROVIDER_API_KEY`: Resend API key (secret 값으로 설정)
-- `EMAIL_FROM_ADDRESS`: Resend에서 인증된 발신 주소 (예: `COMMON <prayer@example.com>`)
+- `RESEND_API_KEY`: Resend API key (secret 값으로 설정)
+- `PRAYER_FROM_EMAIL`: Resend에서 인증된 발신 주소 (예: `prayer@example.com`)
 
-provider가 설정되지 않았거나 발송 확인에 실패하면 API는 성공을 반환하지 않습니다. 수신 주소 변경에는 코드 배포가 필요하지 않습니다.
+`RESEND_API_KEY`에는 `NEXT_PUBLIC_` 접두사를 붙이지 않습니다. Provider가 설정되지 않았거나 Resend가 발송 요청을 정상 접수하지 않으면 API는 성공을 반환하지 않습니다. 수신 주소 변경에는 코드 배포가 필요하지 않습니다.

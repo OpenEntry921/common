@@ -1,101 +1,102 @@
 import "server-only";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { SITE_CONFIG } from "@/lib/config";
+
+export type PrayerRequestType = "prayer_only" | "conversation" | "pastoral_care";
+export type PrayerIdentity = "anonymous" | "named" | "contact";
 
 export type PrayerEmail = {
   receivedAt: Date;
-  privacy: "anonymous" | "named" | "contact";
+  identity: PrayerIdentity;
   story: string;
-  connection: "prayer" | "conversation" | "pastoral";
+  type: PrayerRequestType;
   name?: string;
   contactMethod?: string;
   contactDetail?: string;
 };
 
-const privacyLabels: Record<PrayerEmail["privacy"], string> = {
-  anonymous: "완전 익명",
-  named: "이름 일부",
-  contact: "연락 가능",
+const requestDetails: Record<PrayerRequestType, { subject: string; label: string; contact: string }> = {
+  prayer_only: { subject: "[COMMON][기도요청] 기도만 부탁드립니다", label: "기도 요청", contact: "없음" },
+  conversation: { subject: "[COMMON][대화요청] 누군가와 이야기하고 싶어요", label: "대화 요청", contact: "대화 요청" },
+  pastoral_care: { subject: "[COMMON][목회상담] 목회 상담을 요청합니다", label: "목회 상담", contact: "목회 상담 요청" },
 };
-const connectionLabels: Record<PrayerEmail["connection"], string> = {
-  prayer: "기도만 부탁드립니다",
-  conversation: "누군가와 이야기하고 싶어요",
-  pastoral: "목회 상담을 받아보고 싶어요",
+
+const identityLabels: Record<PrayerIdentity, string> = {
+  anonymous: "완전 익명",
+  named: "이름 일부 공개",
+  contact: "연락 가능",
 };
 
 export function prayerEmailConfigured() {
-  return Boolean(
-    process.env.EMAIL_PROVIDER_API_KEY?.trim() &&
-    process.env.EMAIL_FROM_ADDRESS?.trim() &&
-    process.env.PRAYER_RECIPIENT_EMAIL?.trim(),
-  );
+  return Boolean(process.env.RESEND_API_KEY?.trim() && process.env.PRAYER_FROM_EMAIL?.trim() && process.env.PRAYER_RECIPIENT_EMAIL?.trim());
 }
 
 export function prayerEmailRecipient() {
   return process.env.PRAYER_RECIPIENT_EMAIL?.trim() ?? "";
 }
 
+function formatReceivedAt(date: Date) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(date);
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, character => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[character] ?? character);
+}
+
 export function formatPrayerEmail(request: PrayerEmail) {
-  const parts = [
-    "COMMON 기도 요청",
-    "",
-    "새로운 기도 요청이 접수되었습니다.",
-    "",
-    `접수 시간:\n${new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(request.receivedAt)}`,
-    "",
-    `공개 방식:\n${privacyLabels[request.privacy]}`,
-    ...(request.name ? ["", `이름 또는 별명:\n${request.name}`] : []),
-    "",
-    `기도 제목:\n${request.story}`,
-    "",
-    `요청 사항:\n${connectionLabels[request.connection]}`,
+  const details = requestDetails[request.type];
+  return [
+    "COMMON", "", "새로운 기도 요청이 접수되었습니다.", "",
+    `요청 종류:\n${details.label}`, "", `신원:\n${identityLabels[request.identity]}`,
+    ...(request.name ? ["", `이름:\n${request.name}`] : []),
+    "", `연락 요청:\n${details.contact}`,
     ...(request.contactMethod ? ["", `연락 방법:\n${request.contactMethod}`] : []),
-    ...(request.contactDetail ? ["", `연락처:\n${request.contactDetail}`] : []),
-    "",
-    "--------------------------------",
-    "",
-    `Hosted by ${SITE_CONFIG.churchName}`,
-    SITE_CONFIG.churchUrl,
-  ];
-  return parts.join("\n");
+    ...(request.contactDetail ? ["", `${request.contactMethod === "문자" || request.contactMethod === "전화" ? "연락처" : "연락 정보"}:\n${request.contactDetail}`] : []),
+    "", "━━━━━━━━━━━━━━━━━━", "", "기도 제목", "", request.story, "", "━━━━━━━━━━━━━━━━━━", "",
+    `접수 시간:\n${formatReceivedAt(request.receivedAt)}`, "", `Hosted by ${SITE_CONFIG.churchName}`, SITE_CONFIG.churchUrl,
+  ].join("\n");
+}
+
+export function formatPrayerEmailHtml(request: PrayerEmail) {
+  const details = requestDetails[request.type];
+  const row = (label: string, value: string) => `<div style="margin:0 0 18px"><div style="color:#777;font-size:13px;margin-bottom:5px">${label}</div><div style="font-size:16px;font-weight:600">${escapeHtml(value)}</div></div>`;
+  const detailLabel = request.contactMethod === "문자" || request.contactMethod === "전화" ? "연락처" : "연락 정보";
+  return `<!doctype html><html><body style="margin:0;background:#f6f3ed;color:#292720;font-family:Arial,'Apple SD Gothic Neo','Noto Sans KR',sans-serif"><div style="max-width:620px;margin:0 auto;padding:40px 20px"><div style="background:#fff;border:1px solid #e5e0d7;border-radius:12px;padding:36px"><div style="font-size:22px;font-weight:800;letter-spacing:.08em">COMMON</div><p style="margin:10px 0 30px;color:#555">새로운 기도 요청이 접수되었습니다.</p>${row("요청 종류", details.label)}${row("신원", identityLabels[request.identity])}${request.name ? row("이름", request.name) : ""}${row("연락 요청", details.contact)}${request.contactMethod ? row("연락 방법", request.contactMethod) : ""}${request.contactDetail ? row(detailLabel, request.contactDetail) : ""}<div style="border-top:1px solid #d8d2c8;border-bottom:1px solid #d8d2c8;margin:30px 0;padding:26px 0"><div style="font-size:14px;font-weight:700;margin-bottom:14px">기도 제목</div><div style="font-size:16px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(request.story)}</div></div>${row("접수 시간", formatReceivedAt(request.receivedAt))}<p style="margin:30px 0 0;color:#777;font-size:12px">Hosted by <a href="${escapeHtml(SITE_CONFIG.churchUrl)}" style="color:#496650">${escapeHtml(SITE_CONFIG.churchName)}</a></p></div></div></body></html>`;
 }
 
 function safeEmailHeader(value: string) {
   return value.length <= 254 && !/[\r\n]/.test(value) && /.+@.+\..+/.test(value);
 }
 
-/** Sends plain text through Resend. Provider-specific code is isolated here for replacement. */
+/** Sends directly to Resend's server-side API; no request data is persisted or logged. */
 export async function sendPrayerEmail(request: PrayerEmail) {
-  const apiKey = process.env.EMAIL_PROVIDER_API_KEY?.trim();
-  const from = process.env.EMAIL_FROM_ADDRESS?.trim();
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const from = process.env.PRAYER_FROM_EMAIL?.trim();
   const to = prayerEmailRecipient();
   if (!apiKey || !from || !to) throw new Error("email_provider_not_configured");
   if (!safeEmailHeader(from) || !safeEmailHeader(to)) throw new Error("invalid_email_configuration");
 
-  const text = formatPrayerEmail(request);
-  const idempotencyKey = `prayer/${createHash("sha256").update(`${randomUUID()}\0${text}`).digest("hex")}`;
+  const details = requestDetails[request.type];
+  const body = JSON.stringify({ from, to: [to], subject: details.subject, text: formatPrayerEmail(request), html: formatPrayerEmailHtml(request) });
+  const idempotencyKey = `prayer/${randomUUID()}`;
   let lastError: Error | undefined;
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    if (attempt) await new Promise(resolve => setTimeout(resolve, 350));
+    if (attempt) await new Promise(resolve => setTimeout(resolve, 400));
     try {
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "Idempotency-Key": idempotencyKey,
-        },
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject: "[COMMON] 새로운 기도 요청이 도착했습니다",
-          text,
-        }),
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+        body,
         signal: AbortSignal.timeout(8_000),
       });
       if (response.ok) return;
       lastError = new Error(`email_provider_${response.status}`);
-      if (response.status < 500 && response.status !== 429) break;
+      if (response.status !== 429 && response.status < 500) break;
     } catch {
       lastError = new Error("email_provider_network_error");
     }

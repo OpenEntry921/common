@@ -22,6 +22,8 @@ export async function GET(request: Request) {
     status: configured ? "configured" : "not_configured",
     model: openAIModel(),
     mode: configured ? state.mode : "demo",
+    attempts: configured ? state.attempts : 0,
+    recovered: configured ? state.recovered : false,
     error: configured ? error : { code: "missing_api_key" },
   }, { headers: { "Cache-Control": "no-store" } });
 }

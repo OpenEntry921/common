@@ -64,35 +64,63 @@ export async function POST(request: Request) {
     });
   }
 
-  try {
-    const exclusions = (body.excludeReferences ?? []).slice(0, 5).join(", ");
-    const model = openAIModel();
-    const response = await client.responses.create(heartLetterRequest(
-      messages.map(m => ({ role: m.role, content: m.content })),
-      `${HEART_LETTER_INSTRUCTIONS}\n${exclusions ? `이번 답변에서는 이미 제안한 다음 구절을 피하십시오: ${exclusions}` : ""}`,
-    ));
-    let parsed: Record<string, unknown>;
+  const exclusions = (body.excludeReferences ?? []).slice(0, 5).join(", ");
+  const model = openAIModel();
+  const payload = heartLetterRequest(
+    messages.map(m => ({ role: m.role, content: m.content })),
+    `${HEART_LETTER_INSTRUCTIONS}\n${exclusions ? `이번 답변에서는 이미 제안한 다음 구절을 피하십시오: ${exclusions}` : ""}`,
+  );
+  let attempts = 0;
+  while (attempts < 3) {
+    attempts += 1;
     try {
-      parsed = JSON.parse(response.output_text) as Record<string, unknown>;
-      if (!isHeartLetterOutput(parsed)) {
-        throw new Error("Invalid structured output");
+      const response = await client.responses.create(payload);
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(response.output_text) as Record<string, unknown>;
+        if (!isHeartLetterOutput(parsed)) {
+          throw new Error("Invalid structured output");
+        }
+      } catch {
+        logFailure("schema_error", attempts);
+        return fallback("schema_error");
       }
-    } catch {
-      logFailure("schema_error");
-      return fallback("schema_error");
+      recordAISuccess(attempts);
+      if (process.env.NODE_ENV === "development") console.info(`[Heart Letter]\nmode: live\nstatus: success\nmodel: ${model}\nattempts: ${attempts}`);
+      return Response.json({ data: parsed, source: "openai", mode: "live" });
+    } catch (error) {
+      const retryable = isRetryableOpenAIError(error);
+      if (retryable && attempts < 3) {
+        const backoff = attempts === 1 ? 800 : 1500;
+        const delay = error instanceof OpenAIRequestError && error.retryAfterMs !== undefined
+          ? Math.max(backoff, error.retryAfterMs)
+          : backoff;
+        await sleep(delay);
+        continue;
+      }
+      if (error instanceof OpenAIRequestError) {
+        logFailure("openai_error", attempts, error);
+        return fallback("openai_error");
+      }
+      const reason = error instanceof OpenAINetworkError && error.timedOut ? "timeout" : "openai_error";
+      logFailure(reason, attempts);
+      return fallback(reason);
     }
-    recordAISuccess();
-    if (process.env.NODE_ENV === "development") console.info(`[Heart Letter]\nmode: live\nstatus: success\nmodel: ${model}`);
-    return Response.json({ data: parsed, source: "openai", mode: "live" });
-  } catch (error) {
-    if (error instanceof OpenAIRequestError) {
-      logFailure("openai_error", error);
-      return fallback("openai_error");
-    }
-    const reason = error instanceof OpenAINetworkError && error.timedOut ? "timeout" : "openai_error";
-    logFailure(reason);
-    return fallback(reason);
   }
+
+  // The bounded loop always returns, but keep a safe terminal response if it is changed later.
+  logFailure("openai_error", attempts);
+  return fallback("openai_error");
+}
+
+function isRetryableOpenAIError(error: unknown) {
+  if (error instanceof OpenAINetworkError) return true;
+  return error instanceof OpenAIRequestError &&
+    (error.status === 408 || error.status === 409 || error.status === 429 || error.status >= 500);
+}
+
+function sleep(milliseconds: number) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
 function fallback(reason: HeartLetterFallbackReason) {
@@ -105,8 +133,8 @@ function fallback(reason: HeartLetterFallbackReason) {
   });
 }
 
-function logFailure(reason: HeartLetterFallbackReason, error?: OpenAIRequestError) {
-  recordAIFailure({ status: error?.status, code: error?.code ?? reason, type: error?.errorType, param: error?.param });
+function logFailure(reason: HeartLetterFallbackReason, attempts: number, error?: OpenAIRequestError) {
+  recordAIFailure({ status: error?.status, code: error?.code ?? reason, type: error?.errorType, param: error?.param }, "fallback", attempts);
   if (process.env.NODE_ENV !== "development") return;
-  console.info(`[Heart Letter]\nmode: fallback\nstatus: ${error?.status ?? "n/a"}\ncode: ${error?.code ?? reason}\ntype: ${error?.errorType ?? "n/a"}\nparam: ${error?.param ?? "n/a"}`);
+  console.info(`[Heart Letter]\nmode: fallback\nstatus: ${error?.status ?? "n/a"}\ncode: ${error?.code ?? reason}\ntype: ${error?.errorType ?? "n/a"}\nparam: ${error?.param ?? "n/a"}\nattempts: ${attempts}`);
 }

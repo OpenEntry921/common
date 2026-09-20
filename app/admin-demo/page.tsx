@@ -15,6 +15,8 @@ type AiStatus={
   mode?:"live"|"fallback"|"demo";
   model?:string;
   error?:SafeError|null;
+  attempts?:number;
+  recovered?:boolean;
 };
 
 export default function Page(){
@@ -52,6 +54,8 @@ export default function Page(){
     <p className={`connection-status ${active(aiStatus?.openaiConnection)?"on":""}`}>OpenAI 연결　● {label(aiStatus?.openaiConnection)}</p>
     <p className={`connection-status ${active(aiStatus?.structuredAI)?"on":""}`}>Structured AI　● {label(aiStatus?.structuredAI)}</p>
     <p className={`connection-status ${mode==="LIVE"?"on":""}`}>현재 응답 모드　● {mode}</p>
+    <p><strong>Attempts</strong>　{aiStatus?.attempts??"-"}</p>
+    <p><strong>Recovered</strong>　{aiStatus?.recovered?"Yes":"No"}</p>
     <p><strong>Model</strong>　{aiStatus?.model??"-"}</p>
     {aiStatus?.error&&<div className="notice"><p><strong>마지막 오류</strong></p><p>오류 코드　{aiStatus.error.code}</p>{aiStatus.error.status!==undefined&&<p>상태　{aiStatus.error.status}</p>}{aiStatus.error.type&&<p>오류 유형　{aiStatus.error.type}</p>}{aiStatus.error.param&&<p>오류 위치　{aiStatus.error.param}</p>}</div>}
   </div><div className="inline-actions"><button className="button" type="button" onClick={diagnose} disabled={diagnosing}>{diagnosing?"진단 중…":aiStatus?.openaiConnection?"다시 진단":"AI 연결 진단"}</button><Link className="button secondary" href="/heart/letter">마음편지 확인</Link></div><p className="billing-note">진단은 서버에서 직접 기본 연결과 실제 마음편지 Structured Output을 각각 검사합니다. 비밀 키와 사용자 내용은 표시하지 않습니다.</p></section><span className="demo-label">DEMO DASHBOARD · 실제 운영 데이터가 아닙니다</span><div className="grid admin-grid" style={{marginTop:24}}>{stats.map(([n,l,x])=><article className="card admin-card" key={l}><small>{l}</small><b>{n}</b><small>{x}</small></article>)}</div><div style={{textAlign:"center",marginTop:70}}><Link href="/impact" className="button">Community Impact 보기</Link> <Link href="/" className="button secondary">사용자 화면 보기</Link></div></div></section></>;

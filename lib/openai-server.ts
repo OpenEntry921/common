@@ -1,4 +1,5 @@
 import "server-only";
+import { HEART_LETTER_MODEL, OPENAI_TIMEOUT_MS } from "@/lib/heart-letter-ai";
 
 /**
  * Centralized server-only client factory. Secrets are read exclusively from
@@ -16,7 +17,7 @@ export function getOpenAIClient() {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(12_000),
+            signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
           });
         } catch (error) {
           throw new OpenAINetworkError(error instanceof DOMException && error.name === "TimeoutError");
@@ -76,5 +77,5 @@ export class OpenAINetworkError extends Error {
 }
 
 export function openAIModel() {
-  return process.env.OPENAI_MODEL || "gpt-5.6";
+  return HEART_LETTER_MODEL;
 }

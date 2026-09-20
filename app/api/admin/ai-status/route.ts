@@ -1,4 +1,6 @@
 import { validAdminPin } from "@/lib/admin-auth";
+import { getAIState } from "@/lib/ai-diagnostic-state";
+import { openAIModel } from "@/lib/openai-server";
 
 export const runtime = "nodejs";
 
@@ -8,5 +10,18 @@ export async function GET(request: Request) {
   }
 
   const configured = Boolean(process.env.OPENAI_API_KEY?.trim());
-  return Response.json({ configured, status: configured ? "connected" : "not_configured" });
+  const state = getAIState();
+  const error = state.error ? {
+    status: state.error.status,
+    code: state.error.code,
+    type: state.error.type,
+    param: state.error.param,
+  } : null;
+  return Response.json({
+    configured,
+    status: configured ? "configured" : "not_configured",
+    model: openAIModel(),
+    mode: configured ? state.mode : "demo",
+    error: configured ? error : { code: "missing_api_key" },
+  }, { headers: { "Cache-Control": "no-store" } });
 }

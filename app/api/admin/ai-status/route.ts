@@ -1,4 +1,4 @@
-import { validAdminPin } from "@/lib/admin-auth";
+import { validAdminSession } from "@/lib/admin-auth";
 import { getAIState } from "@/lib/ai-diagnostic-state";
 import { openAIModel } from "@/lib/openai-server";
 import { prayerEmailConfigured, prayerEmailRecipient } from "@/lib/server/sendPrayerEmail";
@@ -6,7 +6,7 @@ import { prayerEmailConfigured, prayerEmailRecipient } from "@/lib/server/sendPr
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  if (!validAdminPin(request)) {
+  if (!validAdminSession(request)) {
     return Response.json({ configured: false, status: "unauthorized" }, { status: 401 });
   }
 

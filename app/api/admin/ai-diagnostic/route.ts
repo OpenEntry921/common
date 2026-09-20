@@ -1,4 +1,4 @@
-import { validAdminPin } from "@/lib/admin-auth";
+import { validAdminSession } from "@/lib/admin-auth";
 import { heartLetterRequest, isHeartLetterOutput } from "@/lib/heart-letter-ai";
 import { getOpenAIClient, OpenAINetworkError, OpenAIRequestError, openAIModel } from "@/lib/openai-server";
 import type { SafeAIError } from "@/lib/ai-diagnostic-state";
@@ -14,7 +14,7 @@ function safeError(error: unknown, fallbackCode: string): SafeAIError {
 }
 
 export async function POST(request: Request) {
-  if (!validAdminPin(request)) return Response.json({ error: { code: "unauthorized" } }, { status: 401 });
+  if (!validAdminSession(request)) return Response.json({ error: { code: "unauthorized" } }, { status: 401 });
 
   const model = openAIModel();
   const configured = Boolean(process.env.OPENAI_API_KEY?.trim());

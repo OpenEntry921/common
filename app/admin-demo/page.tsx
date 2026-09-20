@@ -38,7 +38,7 @@ export default function Page(){
 
   async function unlock(e:FormEvent){
     e.preventDefault();setAuthError("");
-    const r=await fetch("/api/admin/auth",{method:"POST",headers:{"x-common-admin-pin":pin}});
+    const r=await fetch("/api/admin/auth",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({pin})});
     if(r.ok){
       setUnlocked(true);sessionStorage.setItem("common-demo-admin","1");
       const savedKey=sessionStorage.getItem(KEY_NAME);

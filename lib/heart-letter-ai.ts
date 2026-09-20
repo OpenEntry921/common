@@ -3,7 +3,9 @@ import "server-only";
 import { HEART_LETTER_INSTRUCTIONS } from "@/lib/heart-letter";
 
 export const HEART_LETTER_MODEL = process.env.OPENAI_MODEL?.trim() || "gpt-5.6";
-export const OPENAI_TIMEOUT_MS = 12_000;
+// Structured generation can take materially longer than a simple connectivity
+// check. Keep the timeout finite, but leave enough room for a healthy response.
+export const OPENAI_TIMEOUT_MS = 30_000;
 export const HEART_LETTER_MAX_OUTPUT_TOKENS = 1000;
 
 export const HEART_LETTER_OUTPUT_SCHEMA = {

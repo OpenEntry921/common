@@ -42,6 +42,7 @@ export function getOpenAIClient() {
             code,
             type,
             param,
+            parseRetryAfter(response.headers.get("retry-after")),
           );
         }
         const data = await response.json() as { output_text?: string; output?: { content?: { type?: string; text?: string }[] }[] };
@@ -56,6 +57,18 @@ function safeErrorField(value: unknown) {
   return typeof value === "string" && /^[a-zA-Z0-9_.:-]{1,100}$/.test(value) ? value : undefined;
 }
 
+function parseRetryAfter(value: string | null) {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  const milliseconds = Number.isFinite(seconds)
+    ? seconds * 1000
+    : Date.parse(value) - Date.now();
+  // Do not let an upstream header hold a user request open indefinitely.
+  return Number.isFinite(milliseconds) && milliseconds >= 0 && milliseconds <= 10_000
+    ? Math.ceil(milliseconds)
+    : undefined;
+}
+
 /** Contains only allow-listed provider metadata, never the raw response or request. */
 export class OpenAIRequestError extends Error {
   constructor(
@@ -63,6 +76,7 @@ export class OpenAIRequestError extends Error {
     public code?: string,
     public errorType?: string,
     public param?: string,
+    public retryAfterMs?: number,
   ) {
     super("OpenAI request failed");
     this.name = "OpenAIRequestError";

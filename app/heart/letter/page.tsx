@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, HeartHandshake, RotateCcw, Send } from "lucide-react";
 import { PageHead } from "@/components/UI";
 import { MAX_MESSAGE_LENGTH, type ConversationMessage, type HeartLetter } from "@/lib/heart-letter";
 import type { HeartLetterMode } from "@/lib/openai-config";
 
-const loadingMessages = ["당신의 이야기를 읽고 있어요...", "함께 생각해볼 말씀을 찾고 있어요...", "조금만 기다려주세요..."];
+const loadingMessages = ["마음에 담아 답변을 준비하고 있어요...", "함께 생각해볼 말씀을 찾고 있어요...", "조금만 기다려주세요..."];
 const showResponseMode = process.env.NEXT_PUBLIC_SHOW_AI_MODE !== "false";
 
 export default function Page() {
@@ -21,6 +21,7 @@ export default function Page() {
   const [continuing, setContinuing] = useState(false);
   const [prayerConfirm, setPrayerConfirm] = useState(false);
   const [responseMode, setResponseMode] = useState<HeartLetterMode | null>(null);
+  const requestInFlight = useRef(false);
 
   useEffect(() => {
     if (!loading) return;
@@ -30,6 +31,8 @@ export default function Page() {
   }, [loading]);
 
   async function ask(nextMessages: ConversationMessage[], alternative = false) {
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
     setLoading(true); setNotice(""); setContinuing(false);
     try {
       const response = await fetch("/api/heart-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: nextMessages, excludeReferences: alternative ? references : [] }) });
@@ -42,13 +45,13 @@ export default function Page() {
       if (result.notice) setNotice(result.notice);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.");
-    } finally { setLoading(false); }
+    } finally { requestInFlight.current = false; setLoading(false); }
   }
 
   function submit(event: FormEvent) {
     event.preventDefault();
     const content = input.trim();
-    if (!content || loading) return;
+    if (!content || loading || requestInFlight.current) return;
     const next = [...messages, { role: "user" as const, content }];
     setInput(""); ask(next);
   }
@@ -66,7 +69,7 @@ export default function Page() {
     <section className="section heart-letter-section"><div className="container heart-letter-container">
       {!answer && !loading && <form className="form heart-input-card" onSubmit={submit}>
         <div className="field"><label htmlFor="heart-story">지금 마음에 있는 이야기</label><textarea id="heart-story" required maxLength={MAX_MESSAGE_LENGTH} value={input} onChange={e => setInput(e.target.value)} placeholder="요즘 마음에 걸리는 일이 있다면 편하게 적어보세요."/><small className="character-count">{input.length} / {MAX_MESSAGE_LENGTH}</small></div>
-        <button className="button" disabled={!input.trim()}>마음 이야기하기 <Send size={17}/></button>
+        <button className="button" disabled={!input.trim() || loading}>마음 이야기하기 <Send size={17}/></button>
       </form>}
 
       {loading && <div className="thinking" role="status" aria-live="polite"><div><span/><span/><span/></div><p>{loadingMessages[loadingStep]}</p></div>}

@@ -1,6 +1,7 @@
 import { validAdminPin } from "@/lib/admin-auth";
 import { getAIState } from "@/lib/ai-diagnostic-state";
 import { openAIModel } from "@/lib/openai-server";
+import { prayerEmailConfigured, prayerEmailRecipient } from "@/lib/server/sendPrayerEmail";
 
 export const runtime = "nodejs";
 
@@ -25,5 +26,6 @@ export async function GET(request: Request) {
     attempts: configured ? state.attempts : 0,
     recovered: configured ? state.recovered : false,
     error: configured ? error : { code: "missing_api_key" },
+    prayerEmail: { configured: prayerEmailConfigured(), recipient: prayerEmailRecipient() },
   }, { headers: { "Cache-Control": "no-store" } });
 }

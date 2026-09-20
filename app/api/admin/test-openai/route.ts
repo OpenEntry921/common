@@ -1,5 +1,5 @@
 import { validAdminPin } from "@/lib/admin-auth";
-import { getOpenAIClient, OpenAINetworkError, OpenAIRequestError, temporaryKeyFrom } from "@/lib/openai-server";
+import { getOpenAIClient, OpenAINetworkError, OpenAIRequestError, openAIModel, temporaryKeyFrom } from "@/lib/openai-server";
 
 export const runtime = "nodejs";
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   try {
     // Keep the probe intentionally minimal. Small output limits can be below a
     // model's supported minimum and are not needed to prove API connectivity.
-    await client.responses.create({ model: process.env.OPENAI_MODEL || "gpt-5.6", input: "Reply with OK." });
+    await client.responses.create({ model: openAIModel(), input: "Reply with OK." });
     return Response.json({ ok: true });
   } catch (error) {
     if (error instanceof OpenAIRequestError) {

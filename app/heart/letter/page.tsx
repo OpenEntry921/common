@@ -5,8 +5,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, BookOpen, HeartHandshake, RotateCcw, Send } from "lucide-react";
 import { PageHead } from "@/components/UI";
 import { MAX_MESSAGE_LENGTH, type ConversationMessage, type HeartLetter } from "@/lib/heart-letter";
+import { OPENAI_KEY_HEADER, OPENAI_SESSION_KEY, type HeartLetterMode } from "@/lib/openai-config";
 
 const loadingMessages = ["당신의 이야기를 읽고 있어요...", "함께 생각해볼 말씀을 찾고 있어요...", "조금만 기다려주세요..."];
+const showResponseMode = process.env.NEXT_PUBLIC_SHOW_AI_MODE !== "false";
 
 export default function Page() {
   const [input, setInput] = useState("");
@@ -20,10 +22,11 @@ export default function Page() {
   const [prayerConfirm, setPrayerConfirm] = useState(false);
   const [isDemoAdmin, setIsDemoAdmin] = useState(false);
   const [hasTemporaryKey, setHasTemporaryKey] = useState(false);
+  const [responseMode, setResponseMode] = useState<HeartLetterMode | null>(null);
 
   useEffect(() => {
     setIsDemoAdmin(sessionStorage.getItem("common-demo-admin") === "1");
-    setHasTemporaryKey(!!sessionStorage.getItem("common-demo-openai-key"));
+    setHasTemporaryKey(!!sessionStorage.getItem(OPENAI_SESSION_KEY));
   }, []);
 
   useEffect(() => {
@@ -38,11 +41,12 @@ export default function Page() {
     try {
       // Prototype only: read the temporary key just-in-time and send it only to
       // COMMON's server route. The browser never calls OpenAI directly.
-      const temporaryKey = sessionStorage.getItem("common-demo-openai-key");
-      const response = await fetch("/api/heart-letter", { method: "POST", headers: { "Content-Type": "application/json", ...(temporaryKey ? { "x-common-openai-key": temporaryKey } : {}) }, body: JSON.stringify({ messages: nextMessages, excludeReferences: alternative ? references : [] }) });
+      const temporaryKey = sessionStorage.getItem(OPENAI_SESSION_KEY);
+      const response = await fetch("/api/heart-letter", { method: "POST", headers: { "Content-Type": "application/json", ...(temporaryKey ? { [OPENAI_KEY_HEADER]: temporaryKey } : {}) }, body: JSON.stringify({ messages: nextMessages, excludeReferences: alternative ? references : [] }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "요청을 처리하지 못했습니다.");
       setAnswer(result.data);
+      setResponseMode(result.mode);
       setReferences(current => current.includes(result.data.scriptureReference) ? current : [...current, result.data.scriptureReference]);
       setMessages([...nextMessages, { role: "assistant", content: JSON.stringify(result.data) }]);
       if (result.notice) setNotice(result.notice);
@@ -65,7 +69,7 @@ export default function Page() {
     ask(next, true);
   }
 
-  function reset() { setMessages([]); setAnswer(null); setReferences([]); setNotice(""); setInput(""); setPrayerConfirm(false); }
+  function reset() { setMessages([]); setAnswer(null); setReferences([]); setNotice(""); setInput(""); setPrayerConfirm(false); setResponseMode(null); }
 
   return <>
     <PageHead eyebrow="A LETTER FOR YOUR HEART" title="마음편지" desc={"누군가에게 말하기 어려운 이야기가 있나요?\n이름을 말하지 않아도 괜찮습니다. 지금 마음에 있는 이야기를 잠시 남겨보세요."}/>
@@ -98,6 +102,7 @@ export default function Page() {
           <Link className="button ghost" href="/">여기까지만 할게요</Link>
         </div>}
         <button className="restart-button" onClick={reset}><RotateCcw size={15}/> 새로운 마음편지 시작하기</button>
+        {showResponseMode && responseMode && <div className={`ai-response-mode ${responseMode}`} role="status">● {responseMode === "live" ? "LIVE AI" : "DEMO RESPONSE"}</div>}
       </div>}
 
       {!answer && notice && <div className="notice error-notice">{notice}</div>}

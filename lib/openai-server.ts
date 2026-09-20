@@ -1,3 +1,5 @@
+import { OPENAI_KEY_HEADER } from "@/lib/openai-config";
+
 /**
  * Centralized server-only client factory. The request key exists only for the
  * lifetime of one prototype request. It is never persisted by the server.
@@ -16,8 +18,8 @@ export function getOpenAIClient(requestKey?: string) {
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(12_000),
           });
-        } catch {
-          throw new OpenAINetworkError();
+        } catch (error) {
+          throw new OpenAINetworkError(error instanceof DOMException && error.name === "TimeoutError");
         }
         if (!response.ok) {
           let code: string | undefined;
@@ -67,13 +69,17 @@ export class OpenAIRequestError extends Error {
 }
 
 export class OpenAINetworkError extends Error {
-  constructor() {
+  constructor(public timedOut = false) {
     super("OpenAI network request failed");
     this.name = "OpenAINetworkError";
   }
 }
 
 export function temporaryKeyFrom(request: Request) {
-  const key = request.headers.get("x-common-openai-key")?.trim();
+  const key = request.headers.get(OPENAI_KEY_HEADER)?.trim();
   return key && key.length <= 256 ? key : undefined;
+}
+
+export function openAIModel() {
+  return process.env.OPENAI_MODEL || "gpt-5.6";
 }

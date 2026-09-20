@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { sendPrayerEmail, type PrayerEmail } from "@/lib/server/sendPrayerEmail";
+import { PrayerEmailError, sendPrayerEmail, type PrayerEmail } from "@/lib/server/sendPrayerEmail";
 
 export const runtime = "nodejs";
 
@@ -74,10 +74,12 @@ export async function POST(request: Request) {
   try {
     await sendPrayerEmail(email);
     return Response.json({ success: true, mode: "email" }, { headers: { "Cache-Control": "no-store" } });
-  } catch {
+  } catch (error) {
     recentRequests.delete(fingerprint);
+    const diagnostic = error instanceof PrayerEmailError ? { stage: error.stage, code: error.code } : { stage: "resend", code: "unknown_error" };
+    console.error("prayer_email_failure", { ...diagnostic, status: error instanceof PrayerEmailError ? error.httpStatus : undefined, provider: "resend", timestamp: new Date().toISOString() });
     return Response.json(
-      { error: "기도 요청을 전달하는 중 문제가 발생했습니다. 작성하신 내용을 유지한 상태에서 잠시 후 다시 시도해주세요." },
+      { success: false, error: "기도 요청을 전달하는 중 문제가 발생했습니다. 작성하신 내용을 유지한 상태에서 잠시 후 다시 시도해주세요.", diagnostic },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }

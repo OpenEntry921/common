@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { SITE_CONFIG } from "@/lib/config";
+import { sendWithResend, type SafeResendError } from "@/lib/server/resend";
 
 export type PrayerRequestType = "prayer_only" | "conversation" | "pastoral_care";
 export type PrayerIdentity = "anonymous" | "named" | "contact";
@@ -33,6 +34,10 @@ export function prayerEmailConfigured() {
 
 export function prayerEmailRecipient() {
   return process.env.PRAYER_RECIPIENT_EMAIL?.trim() ?? "";
+}
+
+export class PrayerEmailError extends Error {
+  constructor(public stage: "environment" | "resend", public code: string, public httpStatus?: number, public providerError?: SafeResendError) { super(code); }
 }
 
 function formatReceivedAt(date: Date) {
@@ -78,28 +83,19 @@ export async function sendPrayerEmail(request: PrayerEmail) {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.PRAYER_FROM_EMAIL?.trim();
   const to = prayerEmailRecipient();
-  if (!apiKey || !from || !to) throw new Error("email_provider_not_configured");
-  if (!safeEmailHeader(from) || !safeEmailHeader(to)) throw new Error("invalid_email_configuration");
+  if (!apiKey || !from || !to) throw new PrayerEmailError("environment", "email_provider_not_configured");
+  if (!safeEmailHeader(from) || !safeEmailHeader(to)) throw new PrayerEmailError("environment", "invalid_email_configuration");
 
   const details = requestDetails[request.type];
-  const body = JSON.stringify({ from, to: [to], subject: details.subject, text: formatPrayerEmail(request), html: formatPrayerEmailHtml(request) });
+  const body = { from, to: [to], subject: details.subject, text: formatPrayerEmail(request), html: formatPrayerEmailHtml(request) };
   const idempotencyKey = `prayer/${randomUUID()}`;
-  let lastError: Error | undefined;
+  let lastResult;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (attempt) await new Promise(resolve => setTimeout(resolve, 400));
-    try {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
-        body,
-        signal: AbortSignal.timeout(8_000),
-      });
-      if (response.ok) return;
-      lastError = new Error(`email_provider_${response.status}`);
-      if (response.status !== 429 && response.status < 500) break;
-    } catch {
-      lastError = new Error("email_provider_network_error");
-    }
+    const result = await sendWithResend(apiKey, body, idempotencyKey);
+    if (!result.error && result.data?.id) return result.data.id;
+    lastResult = result;
+    if (result.httpStatus !== 429 && (result.httpStatus ?? 0) < 500) break;
   }
-  throw lastError ?? new Error("email_delivery_failed");
+  throw new PrayerEmailError("resend", lastResult?.error?.code ?? "email_delivery_failed", lastResult?.httpStatus, lastResult?.error ?? undefined);
 }

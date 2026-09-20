@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, BookOpen, HeartHandshake, RotateCcw, Send } from "lucide-react";
 import { PageHead } from "@/components/UI";
 import { MAX_MESSAGE_LENGTH, type ConversationMessage, type HeartLetter } from "@/lib/heart-letter";
-import { OPENAI_KEY_HEADER, OPENAI_SESSION_KEY, type HeartLetterMode } from "@/lib/openai-config";
+import type { HeartLetterMode } from "@/lib/openai-config";
 
 const loadingMessages = ["당신의 이야기를 읽고 있어요...", "함께 생각해볼 말씀을 찾고 있어요...", "조금만 기다려주세요..."];
 const showResponseMode = process.env.NEXT_PUBLIC_SHOW_AI_MODE !== "false";
@@ -20,14 +20,7 @@ export default function Page() {
   const [notice, setNotice] = useState("");
   const [continuing, setContinuing] = useState(false);
   const [prayerConfirm, setPrayerConfirm] = useState(false);
-  const [isDemoAdmin, setIsDemoAdmin] = useState(false);
-  const [hasTemporaryKey, setHasTemporaryKey] = useState(false);
   const [responseMode, setResponseMode] = useState<HeartLetterMode | null>(null);
-
-  useEffect(() => {
-    setIsDemoAdmin(sessionStorage.getItem("common-demo-admin") === "1");
-    setHasTemporaryKey(!!sessionStorage.getItem(OPENAI_SESSION_KEY));
-  }, []);
 
   useEffect(() => {
     if (!loading) return;
@@ -39,10 +32,7 @@ export default function Page() {
   async function ask(nextMessages: ConversationMessage[], alternative = false) {
     setLoading(true); setNotice(""); setContinuing(false);
     try {
-      // Prototype only: read the temporary key just-in-time and send it only to
-      // COMMON's server route. The browser never calls OpenAI directly.
-      const temporaryKey = sessionStorage.getItem(OPENAI_SESSION_KEY);
-      const response = await fetch("/api/heart-letter", { method: "POST", headers: { "Content-Type": "application/json", ...(temporaryKey ? { [OPENAI_KEY_HEADER]: temporaryKey } : {}) }, body: JSON.stringify({ messages: nextMessages, excludeReferences: alternative ? references : [] }) });
+      const response = await fetch("/api/heart-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: nextMessages, excludeReferences: alternative ? references : [] }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "요청을 처리하지 못했습니다.");
       setAnswer(result.data);
@@ -102,12 +92,10 @@ export default function Page() {
           <Link className="button ghost" href="/">여기까지만 할게요</Link>
         </div>}
         <button className="restart-button" onClick={reset}><RotateCcw size={15}/> 새로운 마음편지 시작하기</button>
-        {showResponseMode && responseMode && <div className={`ai-response-mode ${responseMode}`} role="status">● {responseMode === "live" ? "LIVE AI" : "DEMO RESPONSE"}</div>}
+        {showResponseMode && responseMode && <div className={`ai-response-mode ${responseMode}`} role="status">● {responseMode === "live" ? "LIVE AI" : responseMode === "fallback" ? "FALLBACK" : "DEMO RESPONSE"}</div>}
       </div>}
 
       {!answer && notice && <div className="notice error-notice">{notice}</div>}
-      {!answer && hasTemporaryKey && <div className="ai-availability">● AI 마음편지 사용 가능</div>}
-      {!answer && !hasTemporaryKey && <div className="fallback-notice">현재 Demo Mode입니다.{isDemoAdmin && <><br/>관리자 페이지에서 OpenAI API를 연결하면 실제 AI 응답을 사용할 수 있습니다.</>}</div>}
       <div className="privacy-panel"><ArrowLeft size={16}/><p>마음편지에 남긴 이야기는 현재 데모에서는 저장되지 않습니다. 개인정보나 민감한 정보는 입력하지 않는 것을 권합니다.<br/><small>마음편지는 의료·심리·목회 상담을 대신하지 않습니다. 자신이나 타인을 해칠 위험이 있거나 위급한 상황이라면 112·119 또는 가까운 전문기관에 즉시 도움을 요청해 주세요.</small></p></div>
     </div></section>
   </>;

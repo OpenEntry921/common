@@ -1,3 +1,4 @@
+import "server-only";
 import { timingSafeEqual } from "node:crypto";
 
 /** Server-only PIN comparison. Never import this module from a Client Component. */

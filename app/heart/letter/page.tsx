@@ -9,6 +9,7 @@ import type { HeartLetterMode } from "@/lib/openai-config";
 
 const loadingMessages = ["마음에 담아 답변을 준비하고 있어요...", "함께 생각해볼 말씀을 찾고 있어요...", "조금만 기다려주세요..."];
 const showResponseMode = process.env.NEXT_PUBLIC_SHOW_AI_MODE !== "false";
+const connectionErrorMessage = "잠시 연결이 원활하지 않습니다. 조금 후 다시 시도해주세요.";
 
 export default function Page() {
   const [input, setInput] = useState("");
@@ -36,7 +37,9 @@ export default function Page() {
     setLoading(true); setNotice(""); setContinuing(false);
     try {
       const response = await fetch("/api/heart-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: nextMessages, excludeReferences: alternative ? references : [] }) });
-      const result = await response.json();
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (!contentType.includes("application/json")) throw new Error(connectionErrorMessage);
+      const result = await response.json().catch(() => { throw new Error(connectionErrorMessage); });
       if (!response.ok) throw new Error(result.error || "요청을 처리하지 못했습니다.");
       setAnswer(result.data);
       setResponseMode(result.mode);

@@ -27,6 +27,10 @@ function isRepeatedRequest(ip: string, signature: string) {
 }
 
 export async function POST(request: Request) {
+  const startedAt = Date.now();
+  console.log("[heart-letter] request_started");
+  console.log("[heart-letter] api_key_configured", Boolean(process.env.OPENAI_API_KEY));
+
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   if (rateLimited(ip)) return Response.json({ error: "잠시 후 다시 시도해 주세요." }, { status: 429 });
   const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -74,21 +78,27 @@ export async function POST(request: Request) {
   while (attempts < 3) {
     attempts += 1;
     try {
+      console.log("[heart-letter] openai_request_started", { elapsedMs: Date.now() - startedAt });
       const response = await client.responses.create(payload);
+      console.log("[heart-letter] openai_response_received", { elapsedMs: Date.now() - startedAt });
       let parsed: Record<string, unknown>;
       try {
+        console.log("[heart-letter] response_parse_started", { elapsedMs: Date.now() - startedAt });
         parsed = JSON.parse(response.output_text) as Record<string, unknown>;
         if (!isHeartLetterOutput(parsed)) {
           throw new Error("Invalid structured output");
         }
-      } catch {
+      } catch (error) {
+        logRequestFailure(error, startedAt);
         logFailure("schema_error", attempts);
         return fallback("schema_error");
       }
       recordAISuccess(attempts);
       if (process.env.NODE_ENV === "development") console.info(`[Heart Letter]\nmode: live\nstatus: success\nmodel: ${model}\nattempts: ${attempts}`);
+      console.log("[heart-letter] request_completed", { elapsedMs: Date.now() - startedAt });
       return Response.json({ data: parsed, source: "openai", mode: "live" });
     } catch (error) {
+      logRequestFailure(error, startedAt);
       const retryable = isRetryableOpenAIError(error);
       if (retryable && attempts < 3) {
         const backoff = attempts === 1 ? 800 : 1500;
@@ -111,6 +121,17 @@ export async function POST(request: Request) {
   // The bounded loop always returns, but keep a safe terminal response if it is changed later.
   logFailure("openai_error", attempts);
   return fallback("openai_error");
+}
+
+function logRequestFailure(error: unknown, startedAt: number) {
+  console.error("[heart-letter] request_failed", {
+    status: error instanceof OpenAIRequestError ? error.status : undefined,
+    code: error instanceof OpenAIRequestError ? error.code : undefined,
+    type: error instanceof OpenAIRequestError ? error.errorType : undefined,
+    name: error instanceof Error ? error.name : "unknown",
+    message: error instanceof Error ? error.message : "unknown",
+    elapsedMs: Date.now() - startedAt,
+  });
 }
 
 function isRetryableOpenAIError(error: unknown) {

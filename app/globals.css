@@ -22,3 +22,31 @@
 
 .entry-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.space-entry{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:28px;padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--cream)}.space-entry h2{margin:0 0 8px}.space-entry p:not(.eyebrow){margin:0;color:var(--muted)}
 @media(max-width:800px){.bottom-nav span{white-space:nowrap}.space-entry{align-items:flex-start;flex-direction:column}.space-entry .button{width:100%}}
+
+/* 메인 지역사회 카드 반응형 배치 */
+.community-home-section .container{width:min(1280px,calc(100% - 80px))}
+.community-home-section .section-intro{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:24px;align-items:end}
+.community-home-section .section-intro>p{justify-self:end;max-width:320px}
+.community-home-section .section-title{font-size:clamp(29px,2.5vw,36px)}
+.community-home-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:24px}
+.community-home-card,.community-home-card.featured{grid-column:span 4;width:100%;min-width:0;min-height:230px;padding:36px}
+.community-home-card:nth-child(1){grid-column:span 7}
+.community-home-card:nth-child(2){grid-column:span 5}
+
+@media(min-width:768px) and (max-width:1023px){
+ .community-home-section .container{width:calc(100% - 64px)}
+ .community-home-section .section-intro{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px}
+ .community-home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+ .community-home-card,.community-home-card.featured,.community-home-card:nth-child(1),.community-home-card:nth-child(2){grid-column:auto;min-height:220px;padding:30px}
+ .community-home-card:last-child{grid-column:1/-1}
+}
+
+@media(max-width:767px){
+ .community-home-section .container{width:calc(100% - 36px)}
+ .community-home-section .section-intro{display:block;margin-bottom:32px}
+ .community-home-section .section-intro>p{max-width:none;margin-top:20px}
+ .community-home-section .section-title{font-size:clamp(27px,7.5vw,29px);line-height:1.4}
+ .community-home-grid{grid-template-columns:minmax(0,1fr);gap:16px}
+ .community-home-card,.community-home-card.featured,.community-home-card:nth-child(1),.community-home-card:nth-child(2),.community-home-card:last-child{grid-column:auto;min-height:210px;padding:24px}
+ .community-home-card>svg{margin-bottom:24px}
+}

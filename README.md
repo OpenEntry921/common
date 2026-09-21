@@ -4,11 +4,11 @@
 
 ## Concept
 
-지역 카페를 기반으로 지역 주민과 교회가 자연스럽게 연결되는 Community Platform 프로토타입입니다. 교회를 먼저 드러내기보다 주민에게 도움이 되는 나눔, 프로그램, 대화 경험을 제공하고 사용자가 원할 때만 기도·상담·신앙 콘텐츠로 이어집니다.
+신성커뮤니티교회가 공간을 지역사회에 열고, 사람과 활동을 연결하며, 공간에서 생긴 가치가 다시 동네로 돌아가는 지역사회 순환 플랫폼 프로토타입입니다. 마음의 COMMON과 지역사회 기능은 서로의 이용을 전제로 하지 않습니다.
 
 ## Core Philosophy
 
-**People → Help → Relationship → Community → Church → Faith**
+**SPACE → PEOPLE → COMMUNITY → CIRCLE**
 
 ## Demo
 
@@ -16,14 +16,16 @@
 | --- | --- |
 | `/qr-demo` | 카페 테이블 QR 진입 화면 |
 | `/` | 감정 선택, 서비스 탐색, 선택적 성경 문장 |
-| `/give-ask` | 도움 요청과 재능 나눔 피드 |
-| `/request-help`, `/share-talent` | 도움·재능 등록 폼 |
-| `/community` | 지역 프로그램 목록과 신청 모달 |
-| `/market` | 동네 나눔 장터 |
+| `/community` | THIS WEEK · 승인된 활동을 보여줄 데이터 기반 목록 |
+| `/space`, `/space/[slug]` | 공간 목록·상세와 COMMON OPEN을 포함한 신청 흐름 |
+| `/table` | QUIET TABLE과 COMMON TABLE 안내 |
+| `/connect` | 비공개 연결 요청과 연결 우선순위 안내 |
+| `/circle` | 공간 사용에서 지역사회 환원으로 이어지는 원칙 |
+| `/give-ask`, `/market`, `/request-help`, `/share-talent` | 기존 주소 호환을 위한 새 지역사회 영역 redirect |
 | `/heart` | OpenAI 연동과 안전한 데모 fallback을 사용하는 AI 마음편지 |
 | `/prayer`, `/talk` | 익명 기도 및 사람 연결 요청 |
 | `/my`, `/my/certificate` | Community Passport와 활동 인증서 |
-| `/impact` | 데모 Community Impact 통계 |
+| `/impact` | 명시적으로 표시된 DEMO 환원 요약과 내역 |
 | `/church` | 사용자가 선택해 접근하는 교회 소개 |
 | `/privacy` | 개인정보와 신뢰 원칙 |
 | `/admin-demo` | PIN으로 보호되는 익명 통계 및 AI 설정 운영자 데모 |
@@ -31,8 +33,8 @@
 ### 추천 시연 흐름
 
 1. **일반 주민:** `/qr-demo` → Home → `위로` → 마음편지 → 기도 요청
-2. **지역사회 연결:** Give & Ask → 연결 요청 → 프로그램 신청 → MY 활동 인증서
-3. **운영 관점:** Admin Demo → Community Impact → 사용자 화면
+2. **지역사회 순환:** 이번 주 COMMON → SPACE → TABLE → CONNECT → CIRCLE
+3. **운영 관점:** Admin Demo → 함께 만든 변화 → 사용자 화면
 
 마음편지를 제외한 입력과 수치는 시연용이며 서버에 저장되지 않습니다. 마음편지 내용은 응답 생성을 위해 OpenAI API로 전송되지만 DB, LocalStorage 또는 Analytics에 저장하지 않습니다.
 
@@ -72,18 +74,14 @@ OPENAI_MODEL=your-model-id
 
 `OPENAI_API_KEY`와 `ADMIN_DEMO_PIN`은 Netlify에서 **Contains secret values**로 설정하고 서버 API Route에서만 읽습니다. Secrets Scanning은 활성화한 상태로 유지합니다. **실제 비밀값을 소스 코드, `NEXT_PUBLIC_` 환경변수 또는 GitHub에 절대로 Commit하지 마세요.** 로컬에서는 `.env.local`을 사용할 수 있으며 이 파일은 `.gitignore`에 포함되어 있습니다. 현재 PIN gate는 Prototype 최소 보호이며 Production에서는 실제 관리자 인증·권한 시스템으로 교체해야 합니다.
 
-## Future Roadmap
+## 실제 운영 전 TODO
 
-- Real Authentication
-- Community Member Verification
-- AI API
-- Volunteer Matching
-- Community Passport
-- Verifiable Credentials
-- DID
-- Privacy-preserving Activity Records
-- QR Table Integration
-- Real Admin Analytics
+- 실제 2층 공간 목록, 사진, 수용인원, 사용료, 운영비 기준과 대관 가능 시간 확정
+- COMMON OPEN 운영 정책과 COMMON TABLE의 실제 운영·현장 표시 방식 확정
+- COMMON CONNECT 분야, 전문가 참여·검증 기준과 비공개 요청 처리 체계 확정
+- 참여 가능한 교회·지역 전문가 조사 및 지역 무료 공공서비스 조사
+- 실제 환원 대상기관 선정 기준, 회계처리, 증빙 공개 방식과 공간 운영 관련 세무·회계 검토
+- 프로그램·공간·신청·CONNECT·CIRCLE 데이터를 관리할 관리자 저장소와 권한 시스템 연결
 
 ## 기도 요청 이메일 설정
 

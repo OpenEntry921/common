@@ -11,9 +11,19 @@ export const commonSpaces: Space[] = [
 ];
 
 export const commonTables = [
-  {icon:"🌿",name:"QUIET TABLE",copy:"오늘은 그냥 조용히 쉬어가도 괜찮아요.",description:"말하지 않고 혼자 편안히 머물고 싶은 사람을 위한 자리입니다."},
-  {icon:"☕",name:"COMMON TABLE",copy:"혼자 오셨다면 함께 앉아도 괜찮아요.",description:"가볍게 공간을 공유하며 자연스러운 인사를 시작할 수 있는 자리입니다."},
+  {icon:"🌿",name:"QUIET TABLE",meaning:"오늘은 혼자 있고 싶어요.",copy:"오늘은 그냥 조용히 쉬어가도 괜찮아요.",description:["말하지 않아도 괜찮습니다.","커피 한 잔과 함께 편안하게 머물다 가세요."]},
+  {icon:"☕",name:"COMMON TABLE",meaning:"오늘은 누군가와 함께 있어도 괜찮아요.",copy:"혼자 오셨다면 함께 앉아도 괜찮아요.",description:["책을 읽어도 좋고, 커피를 마셔도 좋고, 가벼운 인사를 나누어도 좋습니다.","대화는 선택입니다. 편하게 머물다 가셔도 괜찮습니다."]},
 ];
+
+export const commonTableExperience = {
+  operatingHours: null as string[] | null,
+  bookThemes: ["위로", "쉼", "관계", "용기", "방향", "감사", "삶", "생각"],
+  photos: [
+    {id:"01",stage:"SPACE",src:null as string | null,futureSrc:"/images/common/tables/cafe-overview-01.jpg",alt:"COMMON 1층 카페 내부",title:"1층 카페 전체 공간"},
+    {id:"02",stage:"DISCOVERY",src:null as string | null,futureSrc:"/images/common/tables/ceiling-window-01.jpg",alt:"1층 카페 천장의 작은 창",title:"1층 천장의 작은 창"},
+    {id:"03",stage:"MEANING",src:null as string | null,futureSrc:"/images/common/tables/cross-through-window-01.jpg",alt:"작은 창을 통해 보이는 2층 천장의 십자가",title:"창 너머 2층 천장의 십자가"},
+  ],
+};
 
 export const connectCategories = [
   ["신앙 이야기","사용자가 원할 때에만 목회적 돌봄 또는 신앙 대화로 연결합니다."],["법률","무료 공공서비스를 먼저 찾고, 필요한 경우 검증된 전문 자원을 안내합니다."],["세무 · 재무","공공 무료상담 또는 검증된 전문 자원을 우선 확인합니다."],["취업 · 진로","고용 관련 공공기관과 지역의 검증된 경험 자원을 찾습니다."],["아이 · 가족","확인된 지역 전문기관이나 공공서비스를 찾습니다."],["청소년","관련 공공기관 또는 검증된 전문기관을 우선 확인합니다."],["디지털 생활","스마트폰·키오스크 이용을 도울 수 있는 지역 자원을 찾습니다."],["생활정보","상황에 맞는 공공기관 또는 지역기관 정보를 찾습니다."],

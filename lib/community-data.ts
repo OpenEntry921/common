@@ -4,6 +4,16 @@ export const commonPrograms: Program[] = [
   {title:"스마트폰 같이 배우기",description:"스마트폰의 기본 기능을 이웃과 함께 익히는 예시 프로그램입니다.",date:"일정 준비 중",time:"시간 협의 중",place:"COMMON SPACE · 공간 미정",capacity:"정원 미정",fee:"참가비 미정",application:"사전 신청",host:"예시 HOST · 지역 자원봉사자",demo:true},
 ];
 
+export type CommonWeekStatus = "past" | "current" | "upcoming";
+export type CommonWeek = { weekId:string; status:CommonWeekStatus; startDate:string|null; endDate:string|null; programs:Program[] };
+const demoProgram = (title:string, description:string, host:string):Program => ({title,description,date:"일정 준비 중",time:"시간 협의 중",place:"COMMON SPACE · 공간 미정",capacity:"정원 미정",fee:"참가비 미정",application:"신청 일정 미정",host:`예시 HOST · ${host}`,openSeats:"COMMON OPEN 자리 미정",demo:true});
+export const commonWeeks:CommonWeek[] = [
+  {weekId:"demo-past",status:"past",startDate:null,endDate:null,programs:[demoProgram("지난 동네 산책","천천히 동네를 걸으며 이야기를 나누었던 모습을 보여주는 예시입니다.","지역 주민"),demoProgram("지난 커피 이야기","커피 한 잔과 함께 서로의 취향을 나누었던 예시 모임입니다.","지역 주민"),demoProgram("지난 작은 생활 클래스","생활 속 작은 지혜를 이웃과 나누었던 예시 프로그램입니다.","지역 주민")]},
+  {weekId:"demo-current",status:"current",startDate:null,endDate:null,programs:[...commonPrograms,demoProgram("동네 산책","가까운 길을 천천히 걸으며 동네를 새롭게 바라보는 예시 모임입니다.","지역 주민"),demoProgram("그림 그리는 오후","간단한 재료로 각자의 오후를 그려보는 예시 프로그램입니다.","지역 주민"),demoProgram("커피 이야기","커피 한 잔과 함께 취향과 일상을 나누는 예시 모임입니다.","지역 주민")]},
+  {weekId:"demo-upcoming",status:"upcoming",startDate:null,endDate:null,programs:[demoProgram("작은 생활 클래스","이웃의 생활 지혜를 함께 배우기 위해 준비 중인 예시 프로그램입니다.","지역 주민")]},
+  {weekId:"demo-later",status:"upcoming",startDate:null,endDate:null,programs:[]},
+];
+
 export type Space = { slug:string; name:string; description:string; recommended:string; maximum:string; uses:string[]; availability:string; fee:string; equipment:string[]; notice:string; available:boolean; demo:true };
 export const commonSpaces: Space[] = [
   {slug:"room-a",name:"예시 공간 A",description:"회의와 공부, 작은 모임을 위한 공간의 예시입니다.",recommended:"권장 인원 확인 중",maximum:"최대 인원 확인 중",uses:["회의","공부","작은 클래스"],availability:"이용 가능 시간 확인 중",fee:"기본 사용료 확인 중",equipment:["시설·장비 확인 중"],notice:"실제 2층 공간 정보 확정 후 업데이트됩니다.",available:false,demo:true},
